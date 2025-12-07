@@ -5,6 +5,9 @@ build/
 !**/src/test/**/build/
 .kotlin
 
+# Data csv files
+data/
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
