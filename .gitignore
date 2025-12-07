@@ -6,7 +6,10 @@ build/
 .kotlin
 
 # Data csv files
-data/
+input-data/
+
+# Hadoop internals
+hadoop/data
 
 ### IntelliJ IDEA ###
 .idea
