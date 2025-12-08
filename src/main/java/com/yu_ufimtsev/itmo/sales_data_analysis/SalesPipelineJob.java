@@ -14,7 +14,14 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.fs.Path;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 public class SalesPipelineJob {
+
+    private static final String REPORT_CSV_PATH = "/opt/hadoop/reports/results.csv";
+
     public static void main(String[] args) throws Exception {
 
         if (args.length != 5) {
@@ -23,7 +30,8 @@ public class SalesPipelineJob {
             System.exit(1);
         }
 
-        long splitSize = Long.parseLong(args[3]) * 1024 * 1024;
+        long splitMb = Long.parseLong(args[3]);
+        long splitSizeInBytes = splitMb * 1024 * 1024;
         int reducersCount = Integer.parseInt(args[4]);
 
         String inputPath = args[0];
@@ -33,7 +41,7 @@ public class SalesPipelineJob {
         Configuration configuration = new Configuration();
 
         long aggregationJobDuration = prepareAndExecuteAggregationSalesJob(
-                configuration, splitSize, reducersCount, inputPath, intermediatePath
+                configuration, splitSizeInBytes, reducersCount, inputPath, intermediatePath
         );
         System.out.println("--------------------------------------------------");
         System.out.printf("Sales aggregation job time: %d ms\n", aggregationJobDuration);
@@ -50,6 +58,8 @@ public class SalesPipelineJob {
         System.out.println("--------------------------------------------------");
         System.out.printf("Total jobs time: %d ms\n", totalTime);
         System.out.println("--------------------------------------------------");
+
+        appendResultsToCsv(splitMb, reducersCount, aggregationJobDuration, sortingJobDuration, totalTime);
     }
 
     private static long prepareAndExecuteAggregationSalesJob(
@@ -119,5 +129,31 @@ public class SalesPipelineJob {
         }
 
         return sortingJobDuration;
+    }
+
+    private static void appendResultsToCsv(long splitMB, long reducersCount, long aggregationMs,
+                                           long sortingMs, long totalPipelineMs) {
+
+        try {
+            File reportFile = new File(REPORT_CSV_PATH);
+            boolean isReportFileNew = !reportFile.exists();
+
+            try (FileWriter fileWriter = new FileWriter(reportFile, true)) {
+                if (isReportFileNew) {
+                    fileWriter.write("splitMB,reducersCount,aggregationMs,sortingMs,totalMs,timestamp\n");
+                }
+
+                fileWriter.write(String.format(
+                        "%d,%d,%d,%d,%d,%s\n",
+                        splitMB, reducersCount,
+                        aggregationMs, sortingMs, totalPipelineMs,
+                        java.time.LocalDateTime.now()
+                ));
+            }
+            System.out.println("CSV report successfully updated");
+
+        } catch (IOException e) {
+            System.err.println("Failed writing to CSV report: " + e.getMessage());
+        }
     }
 }

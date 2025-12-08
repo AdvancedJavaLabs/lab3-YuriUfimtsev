@@ -33,6 +33,7 @@ services:
     restart: always
     volumes:
       - ./../jobs:/opt/hadoop/jobs
+      - ./../reports:/opt/hadoop/reports
     ports:
       - "8088:8088"
     environment:
